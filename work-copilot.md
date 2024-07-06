@@ -48,7 +48,7 @@ l <option> <neccessary_arguments>
   l nt <alias> <category(browser,editor,vpn,outer-url)>
   ~~~
 
-- 解除标记（浏览器，编辑器或VPN）：`dnt`，`denote`，`-denote
+- 解除标记（浏览器，编辑器或VPN）：`dnt`，`denote`，`-denote`
 
   ~~~bash
   l dnt <alias> <category(browser,editor,vpn,outer-url)>
