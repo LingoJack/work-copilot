@@ -452,6 +452,29 @@ def handle_exit():
         sys.exit(0)
 
 
+def handle_help():
+    try:
+        # 获取 COPILOT_HOME 环境变量
+        copilot_home = os.getenv("COPILOT_HOME")
+
+        # 检查环境变量是否存在
+        if copilot_home is None:
+            print("COPILOT_HOME 环境变量未设置。")
+            return
+
+        # 生成 help.txt 的完整路径
+        help_file_path = os.path.join(copilot_home, "help.txt")
+
+        # 打开并读取 help.txt 文件
+        with open(help_file_path, "r", encoding="utf-8") as file:
+            content = file.read()
+            print(content)
+    except FileNotFoundError:
+        print(f"help.txt 文件未找到: {help_file_path}")
+    except Exception as e:
+        print(f"读取文件时发生错误: {e}")
+
+
 def handle_denote_path():
     if is_valid_num(4, "dnt alias category(browser,editor,vpn,outer-url)"):
         alias = sys.argv[2]
@@ -503,8 +526,11 @@ removeCommands = ["rm", "-remove", "remove"]
 noteCommands = ["nt", "-note", "note"]
 denoteCommands = ["dnt", "denote", "-denote"]
 renameCommands = ["rename", "-rename", "rn"]
+helpCommands = ["help", "-help", "-h"]
 command = (exitCommands + addCommands + listCommands + versionCommands + modifyCommands + removeCommands + noteCommands
-           + denoteCommands + renameCommands)
+           + denoteCommands + renameCommands + helpCommands)
+# todo 增加一个翻译的后台命令
+translate = []
 
 
 def main():
@@ -518,6 +544,8 @@ def main():
 
     if arg1 in exitCommands:
         handle_exit()
+    if arg1 in helpCommands:
+        handle_help()
     elif arg1 in addCommands:
         handle_set()
     elif arg1 in listCommands:
