@@ -3,6 +3,7 @@ import os
 import time
 import config
 from urllib.parse import urlparse
+from datetime import datetime, timedelta
 
 
 # 判断是否为网址
@@ -517,6 +518,91 @@ def handle_rename_path():
             rename_url_alias(alias, new_name)
 
 
+def get_fixed_dates():
+    """获取固定的开始和结束日期"""
+    # 获取当前日期
+    current_date = datetime.now()
+    start_date = current_date
+    end_date = start_date + timedelta(days=6)  # 往后六天
+
+    # 将日期格式化为"YYYY.MM.DD"
+    start_date_str = start_date.strftime('%Y.%m.%d')
+    end_date_str = end_date.strftime('%Y.%m.%d')
+
+    return start_date_str, end_date_str
+
+
+def handle_report():
+    # 从配置文件读取路径和周数，使用 'utf-8' 编码
+    try:
+        path = config.read_from_config("Report", "week-report").encode('utf-8').decode('utf-8', errors='replace')
+        week_num = int(config.read_from_config("Report", "week_num").encode('utf-8').decode('utf-8', errors='replace'))
+    except Exception as e:
+        print(f"Error: 读取配置时出错: {e}")
+        return
+
+    # 输出路径检查
+    print(f"从配置文件读取到的路径: {path}")
+
+    # 规范化路径
+    path = os.path.normpath(path)
+
+    # 检查路径是否存在
+    if not os.path.exists(os.path.dirname(path)):
+        print(f"Error: 路径不存在，未创建目录: {os.path.dirname(path)}")
+        return
+
+    # 获取命令行的第2个参数作为要写入的内容
+    if len(sys.argv) > 2:
+        content = sys.argv[2].strip()
+    else:
+        print("Error: 请提供需要写入的内容。")
+        return
+
+    # 判断参数是否为"new"
+    if content.lower() == "new":
+        start_date_str, end_date_str = get_fixed_dates()
+        report_content = f"# Week{week_num}[{start_date_str}-{end_date_str}]\n"
+        config.write_to_config("Report", "last_day", end_date_str)
+
+        # 更新周数并写回配置
+        try:
+            config.write_to_config("Report", "week_num", str(week_num + 1))
+            print(f"已将周数更新为 {week_num + 1} 并写回配置文件。")
+        except Exception as e:
+            print(f"Error: 无法更新配置: {e}")
+    else:
+        # 获取当前日期，并格式化为"YYYY/MM/DD"
+        now = datetime.now()
+        last_day_str = config.read_from_config("Report", "last_day")
+        last_day = datetime.strptime(last_day_str, "%Y.%m.%d")
+        if now > last_day:
+            start_date_str, end_date_str = get_fixed_dates()
+            report_content = f"# Week{week_num}[{start_date_str}-{end_date_str}]\n"
+            config.write_to_config("Report", "last_day", end_date_str)
+            # 更新周数并写回配置
+            try:
+                config.write_to_config("Report", "week_num", str(week_num + 1))
+                print(f"已将周数更新为 {week_num + 1} 并写回配置文件。")
+            except Exception as e:
+                print(f"Error: 无法更新配置: {e}")
+            write_to_markdown(path, report_content)
+        current_date = now.strftime('%Y/%m/%d')
+        report_content = f"- {current_date} {content}\n"
+
+    # 调用写入函数，将内容写入指定路径
+    write_to_markdown(path, report_content)
+
+
+def write_to_markdown(file_path, content):
+    try:
+        with open(file_path, 'a', encoding='utf-8') as file:
+            file.write(content)  # 直接写入内容
+        print(f"已成功将内容写入 {file_path}")
+    except Exception as e:
+        print(f"Error: 无法写入文件: {e}")
+
+
 exitCommands = ["exit", "-q", "quit", "-quit", "-exit"]
 addCommands = ["set", "-set", "s"]
 listCommands = ["ls", "list", "-list"]
@@ -527,8 +613,9 @@ noteCommands = ["nt", "-note", "note"]
 denoteCommands = ["dnt", "denote", "-denote"]
 renameCommands = ["rename", "-rename", "rn"]
 helpCommands = ["help", "-help", "-h"]
+reportCommands = ["-r", "report", "-report", "r"]
 command = (exitCommands + addCommands + listCommands + versionCommands + modifyCommands + removeCommands + noteCommands
-           + denoteCommands + renameCommands + helpCommands)
+           + denoteCommands + renameCommands + helpCommands + reportCommands)
 # todo 增加一个翻译的后台命令
 translate = []
 
@@ -560,6 +647,8 @@ def main():
         handle_note_path()
     elif arg1 in denoteCommands:
         handle_denote_path()
+    elif arg1 in reportCommands:
+        handle_report()
     elif arg1 in renameCommands:
         handle_rename_path()
     elif arg1 in get_browser_list():
